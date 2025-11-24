@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Civciv'in Not Defteri</title>
     
-    <link rel="icon" type="image/png" href="civciv.jpg">
-
+    <link rel="icon" type="image/png" href="civciv.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -14,18 +13,49 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            /* Mobilde adres çubuğu sorununu çözen modern CSS */
             height: 100dvh; 
             width: 100vw;
             background-color: #302638; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden; /* Taşmaları gizle */
+            overflow: hidden; 
             margin: 0;
             user-select: none;
             -webkit-user-select: none;
             touch-action: none; 
             cursor: pointer; 
+        }
+
+        /* --- 3D TARİH VE SAAT --- */
+        .datetime-display {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: #f0f0f0;
+            font-weight: bold;
+            font-size: 24px;
+            line-height: 1.4;
+            z-index: 50;
+            pointer-events: none;
+            
+            /* GÜNCELLENDİ: Tamamen GRİ tonlarda 3D gölge */
+            text-shadow: 
+                0 1px 0 #999,
+                0 2px 0 #888,
+                0 3px 0 #777,
+                0 4px 0 #666,
+                0 5px 10px rgba(128, 128, 128, 0.4); /* Yumuşak gri gölge */
+        }
+
+        /* MOBİL İÇİN MİNİMAL HALE GETİRME */
+        @media (max-width: 768px) {
+            .datetime-display {
+                font-size: 16px; /* Daha küçük font */
+                top: 15px; /* Daha yukarıda */
+                width: 90%;
+                line-height: 1.2;
+            }
         }
 
         /* --- YAPIMCI İMZASI (FOOTER) --- */
@@ -34,7 +64,7 @@
             bottom: 10px;
             width: 100%;
             text-align: center;
-            font-size: 11px; /* Mobilde yer kaplamasın diye biraz küçülttük */
+            font-size: 11px;
             letter-spacing: 1px;
             font-weight: 300;
             color: rgba(255, 255, 255, 0.3);
@@ -63,7 +93,6 @@
             height: 600px;
             perspective: 2000px;
             cursor: default; 
-            /* Ölçekleme animasyonu yumuşak olsun */
             transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
             z-index: 1; 
             transform-origin: center center;
@@ -81,10 +110,9 @@
             transform: translateX(250px); 
         }
 
-        /* --- MOBİL UYUMLULUK --- */
         @media (max-width: 768px) {
             .close-tab {
-                width: 50px !important;
+                width: 40px !important;
                 height: 100px !important;
                 font-size: 14px !important;
             }
@@ -125,14 +153,15 @@
             font-size: 14px;
             cursor: pointer;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-            z-index: 1; 
+            z-index: 50; 
             transition: opacity 0.3s;
             opacity: 0; 
+            pointer-events: none;
         }
 
         .book.open .close-tab {
             opacity: 1;
-            z-index: 20; 
+            pointer-events: auto;
         }
 
         /* --- KAPAĞIN ÖN YÜZÜ --- */
@@ -142,6 +171,7 @@
             background: linear-gradient(135deg, #dcb0ff, #a778e6);
             border-radius: 10px 20px 20px 10px;
             display: flex;
+            flex-direction: column; 
             justify-content: center;
             align-items: center;
             color: #4a235a; 
@@ -151,11 +181,19 @@
             border: 2px solid #9b59b6;
         }
 
+        /* Kapak Resmi Stili */
+        .cover-image {
+            width: 150px; 
+            height: auto;
+            margin-bottom: 10px; 
+            filter: drop-shadow(2px 2px 4px rgba(255,255,255,0.4));
+        }
+
         .cover-text {
-            font-size: 2.5em;
+            font-size: 2.5em; 
             font-weight: bold;
             text-align: center;
-            padding: 20px;
+            padding: 20px; 
             text-shadow: 2px 2px 4px rgba(255,255,255,0.6);
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -272,6 +310,8 @@
 </head>
 <body>
 
+<div class="datetime-display" id="datetimeDisplay"></div>
+
 <div class="creator-footer">
     Made by <a href="https://x.com/wraithuso" target="_blank">@wraithuso</a>
 </div>
@@ -281,11 +321,11 @@
         
         <div class="cover" id="cover">
             <div class="front-face">
+                <img src="civ.png" alt="Civciv Logosu" class="cover-image">
                 <div class="cover-text">CİVCİV'İN NOT DEFTERİ</div>
             </div>
             
             <div class="back-face paper-base pattern-blank" id="leftPageContainer">
-                <div class="close-tab" id="closeTab">KAPAT</div>
                 <canvas id="leftCanvas"></canvas>
                 <div class="page-footer"><span class="page-number" id="leftPageNum">1</span></div>
                 <button class="nav-btn prev-btn" id="prevBtn" title="Önceki Sayfa">
@@ -295,6 +335,9 @@
         </div>
 
         <div class="paper paper-base pattern-blank" id="rightPageContainer">
+            
+            <div class="close-tab" id="closeTab">KAPAT</div>
+
             <canvas id="rightCanvas"></canvas>
             <div class="page-footer"><span class="page-number" id="rightPageNum">2</span></div>
             <button class="nav-btn next-btn" id="nextBtn" title="Sonraki Sayfa">
@@ -343,49 +386,54 @@
     const eraserBtn = document.getElementById('eraserBtn');
     const undoBtn = document.getElementById('undoBtn');
     const patternBtns = document.querySelectorAll('.pattern-btn');
+    const datetimeDisplay = document.getElementById('datetimeDisplay');
+
+
+    // --- SAAT VE TARİH GÜNCELLEME (SANİYESİZ) ---
+    function updateDateTime() {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        // GÜNCELLENDİ: Sadece Saat ve Dakika
+        const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        
+        datetimeDisplay.innerHTML = `${dateStr}<br>${timeStr}`;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 1000); // Dakika başı güncellemek yeterli ama saniye başı kontrol etsin, zararı yok.
+
 
     let currentSpreadIndex = 0; 
     let savedContent = {}; 
     let undoStack = { left: [], right: [] };
 
-    // --- AKILLI MOBİL ÖLÇEKLEME (GELİŞMİŞ) ---
+    // --- AKILLI MOBİL ÖLÇEKLEME (GELİŞMİŞ + BAŞLIK KORUMALI) ---
     function scaleBook() {
         const screenW = window.innerWidth;
         const screenH = window.innerHeight;
-
-        // Defterin Baz Boyutları
         const baseHeight = 600;
-        let baseWidth = 500; // Kapalıyken genişlik
+        let baseWidth = 500; 
 
-        // Eğer defter açıksa, genişliği 2 katı gibi düşünmeliyiz (yaklaşık 960px güvenli alan)
         if (book.classList.contains('open')) {
             baseWidth = 960; 
         }
 
-        // Ekran kenarlarından biraz boşluk bırakalım (Padding)
         const padding = 40; 
         const availW = screenW - padding;
-        const availH = screenH - padding;
+        // GÜNCELLENDİ: Üstteki saat başlığı için daha fazla (70px) güvenli alan bırakıyoruz
+        const availH = screenH - padding - 70; 
 
-        // Hem genişliğe hem yüksekliğe göre oran hesapla
         const scaleX = availW / baseWidth;
         const scaleY = availH / baseHeight;
 
-        // Hangisi daha küçükse onu seç (böylece hem yan hem dik sığar)
         let scale = Math.min(scaleX, scaleY);
-
-        // Defteri gereksiz büyütmeyelim (Max scale 1)
         if (scale > 1) scale = 1;
 
-        // Uygula
         bookContainer.style.transform = `scale(${scale})`;
     }
 
-    // Yüklenince, ekran boyutu değişince ve EKRAN DÖNÜNCE çalıştır
     window.addEventListener('load', scaleBook);
     window.addEventListener('resize', scaleBook);
     window.addEventListener('orientationchange', () => {
-        // Döndürme işleminde tarayıcı boyutları hemen güncellemeyebilir, biraz bekleyip hesaplayalım
         setTimeout(scaleBook, 100);
         setTimeout(scaleBook, 500); 
     });
@@ -514,7 +562,6 @@
         } else {
             book.classList.remove('open');
         }
-        // Açılınca boyutu tekrar hesapla (Çünkü genişlik değişiyor)
         setTimeout(scaleBook, 100); 
     }
 
@@ -637,4 +684,3 @@
 </script>
 </body>
 </html>
-
