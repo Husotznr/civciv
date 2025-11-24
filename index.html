@@ -15,10 +15,12 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            /* Arka Plan Rengi: Koyu Mürdüm */
+            /* Mobilde adres çubuğu sorununu çözen modern CSS */
+            height: 100dvh; 
+            width: 100vw;
             background-color: #302638; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
+            overflow: hidden; /* Taşmaları gizle */
             margin: 0;
             user-select: none;
             -webkit-user-select: none;
@@ -29,31 +31,29 @@
         /* --- YAPIMCI İMZASI (FOOTER) --- */
         .creator-footer {
             position: absolute;
-            bottom: 15px;
+            bottom: 10px;
             width: 100%;
             text-align: center;
-            font-size: 12px;
+            font-size: 11px; /* Mobilde yer kaplamasın diye biraz küçülttük */
             letter-spacing: 1px;
             font-weight: 300;
-            color: rgba(255, 255, 255, 0.3); /* "Made by" kısmı silik kalsın */
-            pointer-events: none; /* Boşluklara tıklayınca bir şey olmasın */
-            z-index: 100; /* En üstte dursun */
+            color: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            z-index: 100;
         }
 
-        /* Link Stili */
         .creator-footer a {
-            color: rgba(255, 255, 255, 0.3); /* Başlangıç rengi silik */
-            text-decoration: none; /* Alt çizgi yok */
-            transition: all 0.3s ease; /* Yumuşak geçiş */
-            pointer-events: auto; /* SADECE linke tıklanabilsin */
+            color: rgba(255, 255, 255, 0.3);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            pointer-events: auto;
             cursor: pointer;
             font-weight: bold;
         }
 
-        /* Mouse Üzerine Gelince (Hover) */
         .creator-footer a:hover {
-            color: #ffffff; /* Bembeyaz olsun */
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); /* Parlama efekti */
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
         }
 
         /* --- 3D Sahne --- */
@@ -63,8 +63,10 @@
             height: 600px;
             perspective: 2000px;
             cursor: default; 
-            transition: transform 0.3s ease;
+            /* Ölçekleme animasyonu yumuşak olsun */
+            transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
             z-index: 1; 
+            transform-origin: center center;
         }
 
         .book {
@@ -81,13 +83,10 @@
 
         /* --- MOBİL UYUMLULUK --- */
         @media (max-width: 768px) {
-            .book.open {
-                transform: translateX(10px) rotateY(-5deg); 
-            }
             .close-tab {
                 width: 50px !important;
-                height: 120px !important;
-                font-size: 16px !important;
+                height: 100px !important;
+                font-size: 14px !important;
             }
         }
 
@@ -349,22 +348,47 @@
     let savedContent = {}; 
     let undoStack = { left: [], right: [] };
 
-    function scaleBookForMobile() {
-        const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
-        const bookWidth = 500; 
-        const bookHeight = 600;
-        if (screenWidth < bookWidth + 40 || screenHeight < bookHeight + 40) {
-            const scaleX = (screenWidth - 20) / bookWidth;
-            const scaleY = (screenHeight - 20) / bookHeight;
-            const scale = Math.min(scaleX, scaleY, 1); 
-            bookContainer.style.transform = `scale(${scale})`;
-        } else {
-            bookContainer.style.transform = 'scale(1)';
+    // --- AKILLI MOBİL ÖLÇEKLEME (GELİŞMİŞ) ---
+    function scaleBook() {
+        const screenW = window.innerWidth;
+        const screenH = window.innerHeight;
+
+        // Defterin Baz Boyutları
+        const baseHeight = 600;
+        let baseWidth = 500; // Kapalıyken genişlik
+
+        // Eğer defter açıksa, genişliği 2 katı gibi düşünmeliyiz (yaklaşık 960px güvenli alan)
+        if (book.classList.contains('open')) {
+            baseWidth = 960; 
         }
+
+        // Ekran kenarlarından biraz boşluk bırakalım (Padding)
+        const padding = 40; 
+        const availW = screenW - padding;
+        const availH = screenH - padding;
+
+        // Hem genişliğe hem yüksekliğe göre oran hesapla
+        const scaleX = availW / baseWidth;
+        const scaleY = availH / baseHeight;
+
+        // Hangisi daha küçükse onu seç (böylece hem yan hem dik sığar)
+        let scale = Math.min(scaleX, scaleY);
+
+        // Defteri gereksiz büyütmeyelim (Max scale 1)
+        if (scale > 1) scale = 1;
+
+        // Uygula
+        bookContainer.style.transform = `scale(${scale})`;
     }
-    window.addEventListener('load', scaleBookForMobile);
-    window.addEventListener('resize', scaleBookForMobile);
+
+    // Yüklenince, ekran boyutu değişince ve EKRAN DÖNÜNCE çalıştır
+    window.addEventListener('load', scaleBook);
+    window.addEventListener('resize', scaleBook);
+    window.addEventListener('orientationchange', () => {
+        // Döndürme işleminde tarayıcı boyutları hemen güncellemeyebilir, biraz bekleyip hesaplayalım
+        setTimeout(scaleBook, 100);
+        setTimeout(scaleBook, 500); 
+    });
 
 
     function loadFromLocalStorage() {
@@ -483,20 +507,31 @@
         }
     });
 
+    // --- AÇMA / KAPAMA ---
+    function toggleBook(isOpen) {
+        if(isOpen) {
+            book.classList.add('open');
+        } else {
+            book.classList.remove('open');
+        }
+        // Açılınca boyutu tekrar hesapla (Çünkü genişlik değişiyor)
+        setTimeout(scaleBook, 100); 
+    }
+
     cover.addEventListener('click', (e) => {
         if(e.target === closeTab) {
-            book.classList.remove('open');
+            toggleBook(false);
             return;
         }
         if(e.target.closest('.nav-btn') || e.target.tagName === 'CANVAS') return;
         if(currentSpreadIndex === 0 && !book.classList.contains('open')) {
-            book.classList.add('open');
+            toggleBook(true);
         }
     });
 
     document.body.addEventListener('click', (e) => {
         if (!e.target.closest('.book') && book.classList.contains('open')) {
-            book.classList.remove('open');
+            toggleBook(false);
         }
     });
 
@@ -511,6 +546,7 @@
             img.src = temp;
         });
         loadImagesToCanvas();
+        scaleBook();
     }
     
     window.addEventListener('load', resizeCanvases);
