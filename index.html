@@ -38,27 +38,19 @@
             line-height: 1.4;
             z-index: 50;
             pointer-events: none;
-            
-            /* GÜNCELLENDİ: Tamamen GRİ tonlarda 3D gölge */
-            text-shadow: 
-                0 1px 0 #999,
-                0 2px 0 #888,
-                0 3px 0 #777,
-                0 4px 0 #666,
-                0 5px 10px rgba(128, 128, 128, 0.4); /* Yumuşak gri gölge */
+            text-shadow: 0 1px 0 #999, 0 2px 0 #888, 0 3px 0 #777, 0 4px 0 #666, 0 5px 10px rgba(128, 128, 128, 0.4);
         }
 
-        /* MOBİL İÇİN MİNİMAL HALE GETİRME */
         @media (max-width: 768px) {
             .datetime-display {
-                font-size: 16px; /* Daha küçük font */
-                top: 15px; /* Daha yukarıda */
+                font-size: 16px; 
+                top: 15px; 
                 width: 90%;
                 line-height: 1.2;
             }
         }
 
-        /* --- YAPIMCI İMZASI (FOOTER) --- */
+        /* --- YAPIMCI İMZASI --- */
         .creator-footer {
             position: absolute;
             bottom: 10px;
@@ -110,14 +102,6 @@
             transform: translateX(250px); 
         }
 
-        @media (max-width: 768px) {
-            .close-tab {
-                width: 40px !important;
-                height: 100px !important;
-                font-size: 14px !important;
-            }
-        }
-
         /* --- Kapak --- */
         .cover {
             position: absolute;
@@ -164,7 +148,14 @@
             pointer-events: auto;
         }
 
-        /* --- KAPAĞIN ÖN YÜZÜ --- */
+        @media (max-width: 768px) {
+            .close-tab {
+                width: 40px !important;
+                height: 100px !important;
+                font-size: 14px !important;
+            }
+        }
+
         .front-face {
             position: absolute;
             width: 100%; height: 100%;
@@ -181,7 +172,6 @@
             border: 2px solid #9b59b6;
         }
 
-        /* Kapak Resmi Stili */
         .cover-image {
             width: 150px; 
             height: auto;
@@ -335,9 +325,7 @@
         </div>
 
         <div class="paper paper-base pattern-blank" id="rightPageContainer">
-            
             <div class="close-tab" id="closeTab">KAPAT</div>
-
             <canvas id="rightCanvas"></canvas>
             <div class="page-footer"><span class="page-number" id="rightPageNum">2</span></div>
             <button class="nav-btn next-btn" id="nextBtn" title="Sonraki Sayfa">
@@ -365,6 +353,7 @@
 </div>
 
 <script>
+    // Element Seçimleri
     const cover = document.getElementById('cover');
     const book = document.getElementById('book');
     const bookContainer = document.getElementById('bookContainer');
@@ -388,25 +377,44 @@
     const patternBtns = document.querySelectorAll('.pattern-btn');
     const datetimeDisplay = document.getElementById('datetimeDisplay');
 
-
-    // --- SAAT VE TARİH GÜNCELLEME (SANİYESİZ) ---
-    function updateDateTime() {
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        // GÜNCELLENDİ: Sadece Saat ve Dakika
-        const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-        
-        datetimeDisplay.innerHTML = `${dateStr}<br>${timeStr}`;
-    }
-    updateDateTime();
-    setInterval(updateDateTime, 1000); // Dakika başı güncellemek yeterli ama saniye başı kontrol etsin, zararı yok.
-
-
     let currentSpreadIndex = 0; 
     let savedContent = {}; 
     let undoStack = { left: [], right: [] };
 
-    // --- AKILLI MOBİL ÖLÇEKLEME (GELİŞMİŞ + BAŞLIK KORUMALI) ---
+    // --- LOCALSTORAGE YÖNETİMİ (KORUMALI) ---
+    // 1. Adım: Sayfa yüklenir yüklenmez veriyi çek (Daha canvas oluşmadan)
+    try {
+        const rawData = localStorage.getItem('myProNotebook');
+        if (rawData) {
+            savedContent = JSON.parse(rawData);
+        }
+    } catch(e) {
+        console.log("Veri okunamadı veya boş.");
+    }
+
+    function saveToLocalStorage() {
+        // Sadece veri varsa kaydet, boşsa kaydetme
+        saveCurrentDrawingsToMemory();
+        localStorage.setItem('myProNotebook', JSON.stringify(savedContent));
+    }
+
+    function saveCurrentDrawingsToMemory() {
+        // Canvas boş değilse veya daha önce veri varsa kaydet
+        savedContent['L' + currentSpreadIndex] = leftCanvas.toDataURL();
+        savedContent['R' + currentSpreadIndex] = rightCanvas.toDataURL();
+    }
+
+    // --- SAAT ---
+    function updateDateTime() {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        datetimeDisplay.innerHTML = `${dateStr}<br>${timeStr}`;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    // --- MOBİL ÖLÇEKLEME ---
     function scaleBook() {
         const screenW = window.innerWidth;
         const screenH = window.innerHeight;
@@ -419,7 +427,6 @@
 
         const padding = 40; 
         const availW = screenW - padding;
-        // GÜNCELLENDİ: Üstteki saat başlığı için daha fazla (70px) güvenli alan bırakıyoruz
         const availH = screenH - padding - 70; 
 
         const scaleX = availW / baseWidth;
@@ -431,34 +438,47 @@
         bookContainer.style.transform = `scale(${scale})`;
     }
 
-    window.addEventListener('load', scaleBook);
-    window.addEventListener('resize', scaleBook);
-    window.addEventListener('orientationchange', () => {
-        setTimeout(scaleBook, 100);
-        setTimeout(scaleBook, 500); 
-    });
+    // --- CANVAS YÖNETİMİ ---
+    function resizeCanvases() {
+        [leftCanvas, rightCanvas].forEach(canvas => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        });
+        // Boyut ayarlandıktan sonra veriyi YÜKLE (Silinmeyi önler)
+        loadImagesToCanvas();
+        scaleBook();
+    }
 
-
-    function loadFromLocalStorage() {
-        const data = localStorage.getItem('myProNotebook');
-        if (data) {
-            savedContent = JSON.parse(data);
-            if (savedContent.paperPattern) {
-                applyPattern(savedContent.paperPattern);
-            }
+    function loadImagesToCanvas() {
+        // Sol
+        if (savedContent['L' + currentSpreadIndex]) {
+            const imgL = new Image();
+            imgL.src = savedContent['L' + currentSpreadIndex];
+            imgL.onload = () => leftCanvas.getContext('2d').drawImage(imgL, 0, 0, leftCanvas.width, leftCanvas.height);
+        }
+        // Sağ
+        if (savedContent['R' + currentSpreadIndex]) {
+            const imgR = new Image();
+            imgR.src = savedContent['R' + currentSpreadIndex];
+            imgR.onload = () => rightCanvas.getContext('2d').drawImage(imgR, 0, 0, rightCanvas.width, rightCanvas.height);
+        }
+        // Desen
+        if (savedContent.paperPattern) {
+            applyPattern(savedContent.paperPattern);
         }
     }
 
-    function saveToLocalStorage() {
-        saveCurrentDrawingsToMemory();
-        localStorage.setItem('myProNotebook', JSON.stringify(savedContent));
-    }
-
-    function saveCurrentDrawingsToMemory() {
-        savedContent['L' + currentSpreadIndex] = leftCanvas.toDataURL();
-        savedContent['R' + currentSpreadIndex] = rightCanvas.toDataURL();
-    }
-
+    // Event Listeners
+    window.addEventListener('load', resizeCanvases);
+    window.addEventListener('resize', () => {
+        // Resize sırasında önce kaydet, sonra boyutlandır, sonra geri yükle
+        // Ama saveToLocalStorage yerine hafızaya alıyoruz sadece
+        saveCurrentDrawingsToMemory(); 
+        resizeCanvases(); 
+    });
+    window.addEventListener('orientationchange', () => setTimeout(resizeCanvases, 200));
+    
+    // --- UNDO ---
     function saveStateForUndo(side) {
         const canvas = side === 'left' ? leftCanvas : rightCanvas;
         undoStack[side].push(canvas.toDataURL());
@@ -477,11 +497,13 @@
             const ctx = canvas.getContext('2d');
             img.onload = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                saveToLocalStorage();
             };
         }
     });
 
+    // --- DESEN ---
     function applyPattern(patternClass) {
         ['pattern-blank', 'pattern-line', 'pattern-grid'].forEach(p => {
             leftPageContainer.classList.remove(p);
@@ -492,8 +514,11 @@
         patternBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.pattern === patternClass);
         });
+        // Deseni kaydet
         savedContent.paperPattern = patternClass;
-        saveToLocalStorage();
+        // Çizimi bozmadan sadece deseni kaydetmek için saveToLocalStorage çağrılabilir
+        // ama çizim sırasında yavaşlık olmasın diye burayı manuel yapıyoruz
+        localStorage.setItem('myProNotebook', JSON.stringify(savedContent));
     }
 
     patternBtns.forEach(btn => {
@@ -503,37 +528,31 @@
         });
     });
 
+    // --- SAYFA GEÇİŞİ ---
     function changePage(direction) {
-        saveToLocalStorage();
+        saveToLocalStorage(); 
         undoStack = { left: [], right: [] };
+        
         leftPageContainer.classList.add('page-turning');
         rightPageContainer.classList.add('page-turning');
+        
         if (direction === 'next') currentSpreadIndex++;
         else if (direction === 'prev' && currentSpreadIndex > 0) currentSpreadIndex--;
+        
         setTimeout(() => {
+            // Sayfa değişince canvasları temizle ve yenisini yükle
             const ctxL = leftCanvas.getContext('2d');
             const ctxR = rightCanvas.getContext('2d');
             ctxL.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
             ctxR.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
+            
             loadImagesToCanvas();
             updatePageNumbers();
+            
             prevBtn.style.display = currentSpreadIndex === 0 ? 'none' : 'block';
             leftPageContainer.classList.remove('page-turning');
             rightPageContainer.classList.remove('page-turning');
         }, 300);
-    }
-
-    function loadImagesToCanvas() {
-        if (savedContent['L' + currentSpreadIndex]) {
-            const imgL = new Image();
-            imgL.src = savedContent['L' + currentSpreadIndex];
-            imgL.onload = () => leftCanvas.getContext('2d').drawImage(imgL, 0, 0);
-        }
-        if (savedContent['R' + currentSpreadIndex]) {
-            const imgR = new Image();
-            imgR.src = savedContent['R' + currentSpreadIndex];
-            imgR.onload = () => rightCanvas.getContext('2d').drawImage(imgR, 0, 0);
-        }
     }
 
     function updatePageNumbers() {
@@ -555,7 +574,6 @@
         }
     });
 
-    // --- AÇMA / KAPAMA ---
     function toggleBook(isOpen) {
         if(isOpen) {
             book.classList.add('open');
@@ -582,24 +600,7 @@
         }
     });
 
-    function resizeCanvases() {
-        loadFromLocalStorage();
-        [leftCanvas, rightCanvas].forEach(canvas => {
-            const temp = canvas.toDataURL();
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-            const img = new Image();
-            img.onload = () => canvas.getContext('2d').drawImage(img,0,0);
-            img.src = temp;
-        });
-        loadImagesToCanvas();
-        scaleBook();
-    }
-    
-    window.addEventListener('load', resizeCanvases);
-    window.addEventListener('resize', resizeCanvases);
-    window.addEventListener('beforeunload', saveToLocalStorage);
-
+    // --- ÇİZİM ---
     let isDrawing = false;
     let isEraser = false;
     let lastX = 0, lastY = 0;
@@ -622,6 +623,7 @@
     function startDrawing(e) {
         if (e.type === 'touchstart') e.preventDefault();
         if(e.target.closest('.menu-container') || e.target.closest('.nav-btn') || e.target === closeTab) return;
+        
         isDrawing = true;
         const coords = getCoordinates(e, e.target);
         [lastX, lastY] = [coords.x, coords.y];
@@ -634,6 +636,7 @@
         if (!isDrawing) return;
         const ctx = e.target.getContext('2d');
         const coords = getCoordinates(e, e.target);
+        
         ctx.beginPath();
         ctx.moveTo(lastX, lastY);
         ctx.lineTo(coords.x, coords.y);
@@ -642,13 +645,14 @@
         if(!isEraser) ctx.strokeStyle = colorPicker.value;
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.stroke();
+        
         [lastX, lastY] = [coords.x, coords.y];
     }
 
     function stopDrawing(e) { 
         if(isDrawing) {
             isDrawing = false;
-            saveToLocalStorage();
+            saveToLocalStorage(); // Çizim biter bitmez kaydet
         }
     }
 
@@ -684,4 +688,3 @@
 </script>
 </body>
 </html>
-
